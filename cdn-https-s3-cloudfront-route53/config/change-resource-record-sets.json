@@ -1,0 +1,16 @@
+{
+  "Changes": [
+  {
+    "Action": "UPSERT",
+    "ResourceRecordSet": {
+      "Name": "cdn.DNS_ZONE_NAME_PLACEHOLDER.",
+      "Type": "A",
+      "AliasTarget": {
+          "HostedZoneId": "Z2FDTNDATAQYW2",
+          "DNSName": "DISTRIBUTION_DOMAIN_PLACEHOLDER.",
+          "EvaluateTargetHealth": false
+      }
+    }
+  }
+  ]
+}

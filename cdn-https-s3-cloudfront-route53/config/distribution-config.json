@@ -1,0 +1,105 @@
+{
+  "Comment": "",
+  "CacheBehaviors": {
+      "Quantity": 0
+  },
+  "Logging": {
+      "Bucket": "BUCKET_NAME_PLACEHOLDER-logs.s3.amazonaws.com",
+      "Prefix": "",
+      "Enabled": true,
+      "IncludeCookies": false
+  },
+  "WebACLId": "",
+  "Origins": {
+      "Items": [
+          {
+              "S3OriginConfig": {
+                  "OriginAccessIdentity": ""
+              },
+              "OriginPath": "",
+              "CustomHeaders": {
+                  "Quantity": 0
+              },
+              "Id": "S3-BUCKET_NAME_PLACEHOLDER",
+              "DomainName": "BUCKET_NAME_PLACEHOLDER.s3.amazonaws.com"
+          }
+      ],
+      "Quantity": 1
+  },
+  "DefaultRootObject": "index.html",
+  "PriceClass": "PriceClass_100",
+  "Enabled": true,
+  "DefaultCacheBehavior": {
+      "TrustedSigners": {
+          "Enabled": false,
+          "Quantity": 0
+      },
+      "TargetOriginId": "S3-BUCKET_NAME_PLACEHOLDER",
+      "ViewerProtocolPolicy": "redirect-to-https",
+      "ForwardedValues": {
+          "Headers": {
+              "Quantity": 0
+          },
+          "Cookies": {
+              "Forward": "none"
+          },
+          "QueryStringCacheKeys": {
+              "Quantity": 0
+          },
+          "QueryString": false
+      },
+      "MaxTTL": 31536000,
+      "SmoothStreaming": false,
+      "DefaultTTL": 86400,
+      "AllowedMethods": {
+          "Items": [
+              "HEAD",
+              "GET",
+              "OPTIONS"
+          ],
+          "CachedMethods": {
+              "Items": [
+                  "HEAD",
+                  "GET",
+                  "OPTIONS"
+              ],
+              "Quantity": 3
+          },
+          "Quantity": 3
+      },
+      "MinTTL": 0,
+      "Compress": false
+  },
+  "CallerReference": "distribution-BUCKET_NAME_PLACEHOLDER",
+  "ViewerCertificate": {
+      "SSLSupportMethod": "sni-only",
+      "ACMCertificateArn": "ACM_CERT_ARN_PLACEHOLDER",
+      "Certificate": "ACM_CERT_ARN_PLACEHOLDER",
+      "MinimumProtocolVersion": "TLSv1",
+      "CertificateSource": "acm"
+  },
+  "CustomErrorResponses": {
+      "Items": [
+          {
+              "ErrorCode": 404,
+              "ResponsePagePath": "/not_found.html",
+              "ResponseCode": "404",
+              "ErrorCachingMinTTL": 3600
+          }
+      ],
+      "Quantity": 1
+  },
+  "HttpVersion": "http2",
+  "Restrictions": {
+      "GeoRestriction": {
+          "RestrictionType": "none",
+          "Quantity": 0
+      }
+  },
+  "Aliases": {
+    "Items": [
+        "cdn.DNS_ZONE_NAME_PLACEHOLDER"
+    ],
+    "Quantity": 1
+  }
+}
