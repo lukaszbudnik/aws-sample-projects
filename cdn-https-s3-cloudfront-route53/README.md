@@ -3,11 +3,11 @@
 HTTPS CDN example using:
 
 * AWS S3 as origin
-* AWS CloufFront as CDN
+* AWS CloudFront as CDN
 * AWS Route53 as DNS
 * AWS Certificate Manager as HTTPS certificate manager
 
-# Prerequisistes
+# Prerequisites
 
 It is assumed that you run it in your AWS test account. User invoking `deploy.sh` should have access to: S3, CloudFront, Route53, Certificate Manager. For hosting production application you should use production AWS account with a fine-grained IAM permissions for testing are you good with full permissions to mentioned services.
 
@@ -18,7 +18,7 @@ There are 2 prerequisites which are not part of this script:
 
 # How does it work?
 
-Assuming deploy.sh is configured as:
+Assuming `deploy.sh` is configured as:
 
 ```
 BUCKET_NAME=my-cool-cdn
@@ -32,4 +32,4 @@ it will setup a HTTPS CDN with the following configuration:
 3. DNS for CDN: cdn.my-cool-website.com
 4. HTTPS for CD: https://cdn.my-cool-website.com
 
-Notice: it may take some time for AWS to fully propagate your changes. For example you may end-up with having 307 temporary redirects for https://cdn.my-cool-website.com/index.html for a couple of hours. If you are getting 307 with cache hit you may also trigger CloufFront invalidations to make sure edge locations refresh their cache. Be patient.
+Notice: it may take some time for AWS to fully propagate your changes. For example you may end-up with having 307 temporary redirects for https://cdn.my-cool-website.com/index.html for a couple of hours. If you are getting 307 with cache hit you may also trigger CloudFront invalidations to make sure edge locations refresh their cache. Be patient.
