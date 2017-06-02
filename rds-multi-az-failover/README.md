@@ -1,0 +1,66 @@
+# rds-multi-az-failover
+
+How do you force a failover of AWS RDS Multi-AZ DB Instance?
+
+This is quite a frequent question and some people say that you can't do it.
+
+Well, you can. And here are two ways to do it:
+
+1. Reboot with force-failover flag set to true
+2. Scale up/down operation
+
+# Prerequisites
+
+It is assumed that you run it in your AWS test account. User (or role) invoking `test.sh` should have access to AWS RDS. For testing I was using full permissions to RDS.
+
+This script takes no arguments. But there are some assumptions in place:
+
+1. AWS RDS DB Instance already running in a test VPC
+2. Script is called from a host within the same VPC (script dynamically fetches info about VPC ID, RDS DB instances, and DNS info)
+
+# Sample output
+
+A sample output I got for eu-central-1 region was:
+
+```
+First option - reboot instance with force failover set to true.
+
+This operation is fast. This script will loop max 10 times with a sleep of 10 seconds each. Usually 4 iterations are enough.
+
+testingonly.p1p0gp0kmq1r.eu-central-1.rds.amazonaws.com ip before failover: 172.31.9.114
+
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+
+testingonly.p1p0gp0kmq1r.eu-central-1.rds.amazonaws.com ip after failover: 172.31.24.133
+
+
+Note: need to sleep for 60 seconds before doing another test - just to be sure the first failover is complete...
+
+
+Second option - scale DB instance from db.m3.large to db.m3.2xlarge
+
+This operation is slow. First standby is promoted and only then DNS records are updated. This script will loop max 20 times with a sleep of 60 seconds each. Number of loops depends on instance types used for the test.
+
+testingonly.p1p0gp0kmq1r.eu-central-1.rds.amazonaws.com ip before failover: 172.31.24.133
+
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+Waiting for new ip...
+
+testingonly.p1p0gp0kmq1r.eu-central-1.rds.amazonaws.com ip after failover: 172.31.6.80
+```
