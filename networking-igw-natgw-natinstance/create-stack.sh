@@ -1,11 +1,17 @@
 #!/bin/bash
 
+keypair_name=$1
+
+if [ -z "$keypair_name" ]; then
+  >&2 echo "Please provide your EC2 key pair name as first argument"
+  exit 1
+fi
+
 stack_prefix="VPCNetworkingTest"
 stack_version=$(date +'%Y%m%d%H%M')
 stack_name="$stack_prefix$stack_version"
 
 ip=$(curl -s checkip.amazonaws.com)
-keypair_name=lukasz-budnik
 
 # well yes the template has hardcoded references to Frankfurt region...
 aws cloudformation create-stack --region eu-central-1 --stack-name $stack_name \
