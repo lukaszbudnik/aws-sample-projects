@@ -1,0 +1,487 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters" : {
+    "KeyPairName" : {
+      "Description" : "The EC2 Key Pair to allow SSH access to the instance",
+      "Type" : "AWS::EC2::KeyPair::KeyName"
+    },
+    "ExternalIP" : {
+      "Description" : "The IP address to be added to bastion instance security group rule for SSH port 22",
+      "Type" : "String"
+    }
+  },
+  "Resources": {
+    "TestVpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "192.168.0.0/16",
+        "InstanceTenancy": "default",
+        "EnableDnsSupport": "true",
+        "EnableDnsHostnames": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Lukasz Budnik networking VPC"
+          }
+        ]
+      }
+    },
+    "PrivateSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": "192.168.1.0/28",
+        "AvailabilityZone": "eu-central-1b",
+        "VpcId": {
+          "Ref": "TestVpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Private Subnet B"
+          }
+        ]
+      }
+    },
+    "PrivateSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": "192.168.2.0/28",
+        "AvailabilityZone": "eu-central-1a",
+        "VpcId": {
+          "Ref": "TestVpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Private Subnet A"
+          }
+        ]
+      }
+    },
+    "PublicSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": "192.168.3.0/28",
+        "AvailabilityZone": "eu-central-1a",
+        "VpcId": {
+          "Ref": "TestVpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Public Subnet A"
+          }
+        ]
+      }
+    },
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Internet Gateway"
+          }
+        ]
+      }
+    },
+    "NatGateway": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": {
+        "AllocationId" : {
+          "Fn::GetAtt" : ["NatGatewayEip", "AllocationId"]
+        },
+        "SubnetId" : {
+          "Ref": "PublicSubnetA"
+        }
+      }
+    },
+    "NatGatewayEip": {
+       "Type" : "AWS::EC2::EIP",
+       "Properties" : {
+          "Domain" : "vpc"
+       }
+    },
+    "DhcpOptions": {
+      "Type": "AWS::EC2::DHCPOptions",
+      "Properties": {
+        "DomainName": "eu-central-1.compute.internal",
+        "DomainNameServers": [
+          "AmazonProvidedDNS"
+        ]
+      }
+    },
+    "acl1411467c": {
+      "Type": "AWS::EC2::NetworkAcl",
+      "Properties": {
+        "VpcId": {
+          "Ref": "TestVpc"
+        }
+      }
+    },
+    "rtb444f142c": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "TestVpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "private subnet route table via nat instance"
+          }
+        ]
+      }
+    },
+    "rtb4bb7ed23": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "TestVpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "private subnet route table via nat gw"
+          }
+        ]
+      }
+    },
+    "rtb5c267d34": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "TestVpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "public subnet route table via internet gw"
+          }
+        ]
+      }
+    },
+    "Bastion": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": "false",
+        "InstanceInitiatedShutdownBehavior": "terminate",
+        "ImageId": "ami-0469bb6b",
+        "InstanceType": "t2.medium",
+        "KeyName": {
+          "Ref": "KeyPairName"
+        },
+        "Monitoring": "false",
+        "SourceDestCheck": "false",
+        "NetworkInterfaces": [
+          {
+            "DeleteOnTermination": "true",
+            "Description": "bastion",
+            "DeviceIndex": 0,
+            "SubnetId": {
+              "Ref": "PublicSubnetA"
+            },
+            "PrivateIpAddresses": [
+              {
+                "PrivateIpAddress": "192.168.3.9",
+                "Primary": "true"
+              }
+            ],
+            "GroupSet": [
+              {
+                "Ref": "sginternal"
+              },
+              {
+                "Ref": "sgexternal"
+              }
+            ],
+            "AssociatePublicIpAddress": "true"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "bastion"
+          }
+        ]
+      }
+    },
+    "DBInstance" : {
+       "Type" : "AWS::RDS::DBInstance",
+       "Properties" : {
+          "AllocatedStorage" : "100",
+          "DBInstanceClass" : "db.t2.micro",
+          "Engine" : "MySQL",
+          "EngineVersion" : "5.6",
+          "DBName": "justatest",
+          "MasterUsername" : "example",
+          "MasterUserPassword" : "OnlyExample01"
+       }
+    },
+    "sginternal": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "internal security group",
+        "VpcId": {
+          "Ref": "TestVpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "internal security group"
+          }
+        ]
+      }
+    },
+    "sgexternal": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "external security group",
+        "VpcId": {
+          "Ref": "TestVpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "external security group"
+          }
+        ]
+      }
+    },
+    "acl1": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "CidrBlock": "0.0.0.0/0",
+        "Egress": "true",
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": "100",
+        "NetworkAclId": {
+          "Ref": "acl1411467c"
+        }
+      }
+    },
+    "acl2": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "CidrBlock": "0.0.0.0/0",
+        "Egress": "false",
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": "100",
+        "NetworkAclId": {
+          "Ref": "acl1411467c"
+        }
+      }
+    },
+    "subnetacl1": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "acl1411467c"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetB"
+        }
+      }
+    },
+    "subnetacl2": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "acl1411467c"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetA"
+        }
+      }
+    },
+    "subnetacl3": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "acl1411467c"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetA"
+        }
+      }
+    },
+    "gw1": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "TestVpc"
+        },
+        "InternetGatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "subnetroute1": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "rtb444f142c"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetB"
+        }
+      }
+    },
+    "subnetroute2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "rtb4bb7ed23"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetA"
+        }
+      }
+    },
+    "subnetroute3": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "rtb5c267d34"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetA"
+        }
+      }
+    },
+    "route1": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "RouteTableId": {
+          "Ref": "rtb444f142c"
+        },
+        "InstanceId": {
+          "Ref": "Bastion"
+        }
+      }
+    },
+    "route2": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "RouteTableId": {
+          "Ref": "rtb4bb7ed23"
+        },
+        "NatGatewayId": {
+          "Ref": "NatGateway"
+        }
+      }
+    },
+    "route3": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "RouteTableId": {
+          "Ref": "rtb5c267d34"
+        },
+        "GatewayId": {
+          "Ref": "InternetGateway"
+        }
+      },
+      "DependsOn": "gw1"
+    },
+    "dchpassoc1": {
+      "Type": "AWS::EC2::VPCDHCPOptionsAssociation",
+      "Properties": {
+        "VpcId": {
+          "Ref": "TestVpc"
+        },
+        "DhcpOptionsId": {
+          "Ref": "DhcpOptions"
+        }
+      }
+    },
+    "ingress1": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sginternal"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "22",
+        "ToPort": "22",
+        "SourceSecurityGroupId": {
+          "Ref": "sgexternal"
+        }
+      }
+    },
+    "ingress2": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgexternal"
+        },
+        "IpProtocol": "-1",
+        "SourceSecurityGroupId": {
+          "Ref": "sginternal"
+        }
+      }
+    },
+    "ingress3": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgexternal"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "22",
+        "ToPort": "22",
+        "CidrIp": {
+          "Fn::Join": ["", [
+          { "Ref": "ExternalIP" },
+          "/32"
+        ]]
+        }
+      }
+    },
+    "egress1": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sginternal"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "egress2": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgexternal"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "0.0.0.0/0"
+      }
+    }
+  },
+  "Description": "",
+  "Outputs": {
+    "TestVpcId": {
+      "Value": {
+        "Ref": "TestVpc"
+      }
+    },
+    "BastionIP": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Bastion",
+          "PublicIp"
+        ]
+      },
+      "Export" : {
+        "Name" : {
+          "Fn::Sub": "${AWS::StackName}-Bastion-IP"
+        }
+      }
+    }
+  }
+}
