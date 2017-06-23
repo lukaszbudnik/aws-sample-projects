@@ -66,8 +66,12 @@ networkig_stack_name=$stack_name
 
 Export/Import looks like a really cool feature, but it also has some (serious?) limitations:
 
-* exported value cannot be updated - in my networking example stack the bastion public IP was exported in first change set; try changing instance type of bastion one more time and re-run the `create-change-set.sh` script; bastion will be replaced with new instance type and will get new public IP (yes, I know that it should be EIP, but that was just an example stack) - the CloudFormation will start applying new change set but will fail on the last step - on updating the export value - as a result the whole change set will be reverted
+* exported value cannot be updated - in my networking example stack the bastion public IP was exported in first change set; try changing instance type of bastion one more time and re-run the `create-change-set.sh` script; bastion will be replaced with new instance type and will get new public IP (yes, I know that it should be EIP, but that was just an example stack) - the CloudFormation will start applying new change set but will fail on the last step - on updating the exported value - as a result the whole change set will be reverted
 * when you try to remove the main stack whose exports are imported by other stacks, it won't work; you need to remove all dependent stacks first and only then CloudFormation will let you remove the main stack.
 * (not a serious one though) name of the export cannot use functions/references to resources - this is to make the name of the exported value more like a static label (and makes sense)
 
-So what is the alternative to Export/Import? Use `CloudFormation:DescribeStacks` to read outputs and pass them as explicit params to other stacks.
+If above limitations are of any concerns to you, an alternative to Export/Import could be using `CloudFormation:DescribeStacks` to read stack outputs and pass them as explicit params to other stacks.
+
+# Next Steps?
+
+With AWS Service Catalog you can turn your CloudFormation stacks into managable (and versioned) products. These products can be later launched by other AWS users. This is a really nice way of organising and managing your stacks.
