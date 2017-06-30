@@ -72,6 +72,18 @@ Export/Import looks like a really cool feature, but it also has some (serious?) 
 
 If above limitations are of any concerns to you, an alternative to Export/Import could be using `CloudFormation:DescribeStacks` to read stack outputs and pass them as explicit params to other stacks.
 
+# Notes on AWS CloudFormation capabilities
+
+When you run CloudFormation stack it uses the callee permissions. The callee must have permissions to invoke all the actions that CloudFormation executes on his behalf.
+
+There is additional requirement for CloudFormation stacks which create IAM resources. These types of operations can be potentially dangerous - especially when you run 3rd party stacks (which could for example create a role with admin access to all AWS services and use it to attack your account/services/resources).
+
+In such case you need to explicitly tell CloudFormation that you want to create IAM resources. This is done by appending the following argument to `create-stack` command:
+
+```
+--capabilities CAPABILITY_IAM
+```
+
 # Next Steps?
 
-With AWS Service Catalog you can turn your CloudFormation stacks into managable (and versioned) products. These products can be later launched by other AWS users. This is a really nice way of organising and managing your stacks.
+With AWS Service Catalog you can turn your CloudFormation stacks into manageable (and versioned) products. These products can be later launched by other AWS users. This is a really nice way of organising and managing your stacks.
