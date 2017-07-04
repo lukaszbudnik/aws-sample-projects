@@ -1,0 +1,140 @@
+Parameters:
+  KeyPairName:
+    Description: The EC2 Key Pair to allow SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+  InstanceType:
+    Description: The EC2 Instance Type for the instance
+    Type: String
+  ExternalIP:
+    Description: The external IP which will be allowed to SSH to the instance
+    Type: String
+
+Mappings:
+  # to use other regions/virtualization types update the mapping
+  RegionToArchToAmiMap:
+    eu-central-1:
+        hvm: "ami-8da700e2"
+
+Resources:
+
+  EBSVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: false
+
+  InternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref EBSVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref EBSVPC
+
+  Route:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EBSVPC
+      CidrBlock: 10.0.0.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref RouteTable
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Remote SSH access
+      VpcId: !Ref EBSVPC
+      SecurityGroupIngress:
+        -
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Join ['', [!Ref ExternalIP, '/32']]
+
+  Safe:
+    Type: "AWS::EC2::Volume"
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+      Encrypted: true
+      VolumeType: gp2
+      Size: 8
+      Tags:
+        -
+          Key: "Name"
+          Value: "Safe"
+
+  Instance:
+      Type: AWS::EC2::Instance
+      Properties:
+        ImageId: !FindInMap [ RegionToArchToAmiMap, !Ref 'AWS::Region' , 'hvm' ]
+        KeyName: !Ref KeyPairName
+        InstanceType: !Ref InstanceType
+        EbsOptimized: true
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeviceIndex: 0
+            GroupSet:
+              - !Ref SecurityGroup
+            SubnetId: !Ref PublicSubnet
+        Tags:
+          -
+            Key: "Name"
+            Value: "EBS"
+        Volumes:
+          -
+            VolumeId: !Ref Safe
+            Device: /dev/sdb
+        UserData:
+          "Fn::Base64":
+            !Sub |
+              #!/bin/bash -xe
+              /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource Instance --region ${AWS::Region}
+      Metadata:
+        AWS::CloudFormation::Init:
+          config:
+            commands:
+              setup_raid:
+                command:
+                  !Sub |
+                  mkfs.ext4 -L safe /dev/xvdb
+                  mkdir -p /mnt/safe
+                  mount LABEL=safe /mnt/safe
+                  echo 'LABEL=safe /mnt/safe ext4 defaults,nofail,discard 0 0' >> /etc/fstab
+
+Outputs:
+  PublicIP:
+    Description: The instance public IP
+    Value: !GetAtt Instance.PublicIp
+  InstanceID:
+    Description: The instance ID
+    Value: !Ref Instance
+  VolumeID:
+    Description: The EBS volume ID
+    Value: !Ref Safe
