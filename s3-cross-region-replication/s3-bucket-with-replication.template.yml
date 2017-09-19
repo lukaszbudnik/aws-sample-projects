@@ -1,0 +1,31 @@
+Parameters:
+  BucketNamePrefix:
+    Description: The bucket name prefix used for testing
+    Type: String
+  ReplicationRoleArn:
+    Description: The replication role ARN
+    Type: String
+  TargetRegion:
+    Description: The target region
+    Type: String
+
+Resources:
+
+  Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Join ['-', [!Ref BucketNamePrefix, !Ref 'AWS::Region']]
+      VersioningConfiguration:
+        Status: Enabled
+      ReplicationConfiguration:
+        Role: !Ref ReplicationRoleArn
+        Rules:
+        - Status: Enabled
+          Prefix: ''
+          Destination:
+            Bucket: !Join ['', ['arn:aws:s3:::', !Ref BucketNamePrefix, '-', !Ref TargetRegion]]
+
+Outputs:
+  Bucket:
+    Description: Bucket ARN
+    Value: !GetAtt Bucket.Arn

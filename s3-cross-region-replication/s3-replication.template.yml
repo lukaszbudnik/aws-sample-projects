@@ -1,0 +1,61 @@
+Parameters:
+  BucketNamePrefix:
+    Description: The bucket name prefix used for testing
+    Type: String
+  SourceRegion:
+    Description: The source region (which is also target region)
+    Type: String
+  TargetRegion:
+    Description: The target region (which is also source region)
+    Type: String
+
+Resources:
+
+  S3ReplicationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: ['sts:AssumeRole']
+          Effect: Allow
+          Principal:
+            Service: [s3.amazonaws.com]
+
+  S3ReplicationPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        # SourceRegion -> TargetRegion
+        - Action: ['s3:GetReplicationConfiguration', 's3:ListBucket']
+          Effect: Allow
+          Resource:
+            - !Join ['', ['arn:aws:s3:::', !Ref BucketNamePrefix, '-', !Ref SourceRegion]]
+        - Action: ['s3:GetObjectVersion', 's3:GetObjectVersionAcl', 's3:GetObjectVersionTagging']
+          Effect: Allow
+          Resource:
+            - !Join ['', ['arn:aws:s3:::', !Ref BucketNamePrefix, '-', !Ref SourceRegion, '/*']]
+        - Action: ['s3:ReplicateObject', 's3:ReplicateDelete']
+          Effect: Allow
+          Resource:
+            - !Join ['', ['arn:aws:s3:::', !Ref BucketNamePrefix, '-', !Ref TargetRegion, '/*']]
+        # TargetRegion -> SourceRegion
+        - Action: ['s3:GetReplicationConfiguration', 's3:ListBucket']
+          Effect: Allow
+          Resource:
+            - !Join ['', ['arn:aws:s3:::', !Ref BucketNamePrefix, '-', !Ref TargetRegion]]
+        - Action: ['s3:GetObjectVersion', 's3:GetObjectVersionAcl', 's3:GetObjectVersionTagging']
+          Effect: Allow
+          Resource:
+            - !Join ['', ['arn:aws:s3:::', !Ref BucketNamePrefix, '-', !Ref TargetRegion, '/*']]
+        - Action: ['s3:ReplicateObject', 's3:ReplicateDelete']
+          Effect: Allow
+          Resource:
+            - !Join ['', ['arn:aws:s3:::', !Ref BucketNamePrefix, '-', !Ref SourceRegion, '/*']]
+      PolicyName: S3ReplicationPolicy
+      Roles: [!Ref S3ReplicationRole]
+
+Outputs:
+  S3ReplicationRoleArn:
+    Description: Replication Role ARN
+    Value: !GetAtt S3ReplicationRole.Arn
