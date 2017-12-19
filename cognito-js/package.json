@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "dependencies": {
+    "amazon-cognito-identity-js": "^1.18.0",
+    "aws-sdk": "^2.55.0",
+    "jwt-decode": "^2.2.0"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "bucket": "XXX",
+  "userPool": {
+    "name": "XXXPool",
+    "id": "XXX",
+    "clientId": "XXX"
+  },
+  "identityPool": {
+    "name": "XXXIdentityPool",
+    "id": "XXX",
+    "authenticatedRole": "CognitoAuthenticatedUserRole",
+    "authenticatedRoleArn": "XXX"
+  },
+  "user": {
+    "username": "lukasz",
+    "email": "XXX",
+    "temporaryPassword": "XXX",
+    "newPassword": "XXX"
+  }
+}
